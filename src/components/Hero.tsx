@@ -55,7 +55,7 @@ const Hero = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
-              <Link to="/eco-tasks" className="bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-emerald-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
+              <Link to="/signup" className="bg-emerald-500 text-white px-8 py-4 rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-emerald-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
                 <span>Start Your Eco Journey</span>
                 <ArrowRight className="h-5 w-5" />
               </Link>

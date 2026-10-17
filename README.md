@@ -13,7 +13,8 @@ EARTH-ED AI combines the best elements from two React projects to create a unifi
 - ✅ **20-question environmental quiz** with immediate feedback
 - ✅ **Comprehensive feature showcase** from the platform approach
 - ✅ **Community, Impact, and About sections**
-- ✅ **Supabase-ready** backend integration
+- ✅ **Local demo mode** that works without account setup
+- ✅ **Server-side Gemini Eco-Mentor** integration
 - ✅ **Responsive design** for all devices
 - ✅ **Professional branding** ("EARTH-ED AI")
 
@@ -33,9 +34,9 @@ cd EARTH-ED-AI
 # 2. Install dependencies
 npm install
 
-# 3. Create environment file (optional for Supabase)
+# 3. Create environment file (optional for Gemini)
 cp .env.example .env
-# Edit .env with your Supabase credentials
+# Add GEMINI_API_KEY only if live AI responses are needed
 
 # 4. Start development server
 npm run dev
@@ -102,8 +103,8 @@ EARTH-ED-AI/
 - **Tailwind CSS** - Utility-first CSS
 - **Lucide React** - Icons
 
-### Backend Ready
-- **Supabase** - Backend and database (configured but optional)
+### Server integration
+- **Gemini API** - Accessed through a server-side Vite middleware endpoint
 
 ## 🌟 Key Features
 
@@ -161,30 +162,68 @@ EARTH-ED-AI/
 - Food systems and carbon footprint
 - Biodiversity and ecosystem protection
 
-## 🔐 Optional: Supabase Setup
+## 🧪 Local Demo Account and Progress
 
-If you want to enable backend features:
+The submission runs without Supabase or a backend account. Signup and login are
+clearly labeled demo flows: they validate form input and create a local browser
+session, but they do not provide secure production authentication. Passwords are
+never stored in localStorage and cannot be verified securely without a backend.
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Copy your project URL and anon key
-3. Create `.env` file:
+Dashboard and Eco-Tasks are public. In the local demo, starting a task moves it
+to `IN PROGRESS`; submitting a written evidence description moves it to
+`PENDING VERIFICATION`. Demo rewards are not awarded from a button click, and
+no task is presented as verified without an authenticated review service. Use
+the reset control in Eco-Tasks to clear local demonstration progress. Clearing
+browser storage also resets the demo.
+
+The repository does not currently include a production database, authenticated
+user service, file-upload storage, or administrator review API. Therefore task
+evidence, verified rewards, quiz persistence, and shared dashboard statistics
+are not claimed as database-backed features. Adding those capabilities requires
+an authenticated backend and database migration; do not treat localStorage
+demo state as authoritative environmental impact.
+
+## 🤖 AI Eco-Mentor Setup
+
+The AI Eco-Mentor is available at `/eco-mentor`. Its browser UI sends each
+message and conversation history to the server-side `/api/chat` endpoint; the
+Gemini key is never included in the frontend bundle.
+
+For local development:
+
+1. Create a Gemini API key through [Google AI Studio](https://aistudio.google.com/apikey).
+2. Add the key to `.env` using the server-only variable below:
 
 ```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+GEMINI_API_KEY=your_gemini_api_key
+# Optional model override. The default is gemini-2.5-flash.
+# GEMINI_MODEL=gemini-2.5-flash
 ```
 
-4. Database tables (to be created):
-   - profiles
-   - missions
-   - mission_submissions
-   - quiz_questions
-   - quiz_attempts
-   - points_ledger
-   - badges
-   - user_badges
+3. Restart Vite after changing `.env`:
 
-**Note:** The app works perfectly without Supabase configuration - all content is currently static.
+```bash
+npm run dev
+```
+
+If `GEMINI_API_KEY` is missing or invalid, the Eco-Mentor still renders but
+clearly reports that live AI responses are unavailable. The `/api/chat`
+endpoint validates message size, history, and request rate before calling
+Gemini. It is implemented as Vite development-server middleware. A production
+deployment needs an equivalent serverless/API route with `GEMINI_API_KEY`
+configured in the host's server environment; do not convert it to a `VITE_`
+variable.
+
+## ⚠️ Known Limitations
+
+- Demo account and progress data are local to one browser and are not secure or
+  shared between users.
+- Task submissions stop at pending verification in demo mode; there is no
+  authorized administrator workflow until a backend and database are configured.
+- Password reset is an explanatory demo flow; it does not send email.
+- Live Gemini responses require a configured server-side API key.
+- The project build may report a bundle-size advisory from Vite; this does not
+  prevent the production build.
 
 ## 🎨 Design System
 
@@ -225,7 +264,7 @@ npm run build
 1. Connect your GitHub repository
 2. Configure build command: `npm run build`
 3. Configure output directory: `dist`
-4. Add environment variables (if using Supabase)
+4. Add `GEMINI_API_KEY` only if live AI responses are needed
 5. Deploy!
 
 ### Deploy to GitHub Pages

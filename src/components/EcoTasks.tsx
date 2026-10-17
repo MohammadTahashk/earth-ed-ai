@@ -15,7 +15,10 @@ import {
   Utensils,
   Car,
   Sprout,
+  CheckCircle2,
+  RotateCcw,
 } from 'lucide-react';
+import { DemoProgress, readDemoProgress, resetDemoProgress, saveQuizAttempt, checkAchievements, startDemoTask, submitDemoTask } from '../lib/demoProgress';
 
 type EcoTask = {
   icon: React.ElementType;
@@ -23,6 +26,10 @@ type EcoTask = {
   description: string;
   points: number;
   carbonSaved: string;
+  duration: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  benefit: string;
+  evidence: string;
 };
 
 type QuizQuestion = {
@@ -39,6 +46,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Properly separate paper, plastic, glass, and metal into the correct bins for a full week.',
     points: 50,
     carbonSaved: '2.4 kg',
+    duration: '7 days',
+    difficulty: 'Easy',
+    benefit: 'Keeps recyclable materials out of landfill.',
+    evidence: 'Describe your sorting system and upload a photo when production verification is enabled.',
   },
   {
     icon: Droplets,
@@ -46,6 +57,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Keep every shower under five minutes for seven consecutive days to conserve water.',
     points: 40,
     carbonSaved: '1.8 kg',
+    duration: '7 days',
+    difficulty: 'Easy',
+    benefit: 'Reduces household water use.',
+    evidence: 'Record your shower times and describe the change.',
   },
   {
     icon: Lightbulb,
@@ -53,6 +68,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Replace at least three incandescent bulbs at home with energy-efficient LED alternatives.',
     points: 60,
     carbonSaved: '3.2 kg',
+    duration: '1 hour',
+    difficulty: 'Medium',
+    benefit: 'Uses less electricity than incandescent lighting.',
+    evidence: 'List the bulbs replaced and the room where each was installed.',
   },
   {
     icon: Bike,
@@ -60,6 +79,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Commute by bicycle or walk instead of using a car for five school days in a row.',
     points: 75,
     carbonSaved: '5.6 kg',
+    duration: '5 days',
+    difficulty: 'Medium',
+    benefit: 'Avoids vehicle fuel use and tailpipe emissions.',
+    evidence: 'Log each walk or bicycle trip with date and distance.',
   },
   {
     icon: ShoppingBag,
@@ -67,6 +90,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Complete a full grocery shopping trip using only reusable bags and containers.',
     points: 35,
     carbonSaved: '1.1 kg',
+    duration: '1 shopping trip',
+    difficulty: 'Easy',
+    benefit: 'Avoids single-use shopping bags and containers.',
+    evidence: 'Describe the reusable items used during the trip.',
   },
   {
     icon: TreePine,
@@ -74,6 +101,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Plant and care for a native tree species in your yard or an approved community area.',
     points: 100,
     carbonSaved: '21.0 kg',
+    duration: '2 hours + ongoing care',
+    difficulty: 'Hard',
+    benefit: 'Supports local habitat and can store carbon as it grows.',
+    evidence: 'Provide the species, planting location, and care plan.',
   },
   {
     icon: Utensils,
@@ -81,6 +112,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Skip meat every Monday for four weeks and document your plant-based meals.',
     points: 80,
     carbonSaved: '12.4 kg',
+    duration: '4 weeks',
+    difficulty: 'Medium',
+    benefit: 'Can reduce food-related emissions when replacing high-impact foods.',
+    evidence: 'Share a dated meal log for the four Mondays.',
   },
   {
     icon: Car,
@@ -88,6 +123,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Organize a carpool with at least two classmates for two weeks of school commutes.',
     points: 55,
     carbonSaved: '7.3 kg',
+    duration: '2 weeks',
+    difficulty: 'Hard',
+    benefit: 'Shares trips and reduces fuel use per passenger.',
+    evidence: 'Describe the group size and dates of shared commutes.',
   },
   {
     icon: Sprout,
@@ -95,6 +134,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Grow three edible herbs at home to reduce store-bought packaging and food miles.',
     points: 45,
     carbonSaved: '0.9 kg',
+    duration: '30 minutes + care',
+    difficulty: 'Easy',
+    benefit: 'Builds food-growing skills and may reduce packaging.',
+    evidence: 'List the herbs planted and explain how they are being cared for.',
   },
   {
     icon: Lightbulb,
@@ -102,6 +145,10 @@ const ecoTasks: EcoTask[] = [
     description: 'Unplug all unused chargers and devices nightly for two weeks to cut standby power.',
     points: 30,
     carbonSaved: '1.5 kg',
+    duration: '15 minutes + 2 weeks',
+    difficulty: 'Easy',
+    benefit: 'Reduces standby electricity consumption.',
+    evidence: 'List the devices unplugged and the routine used.',
   },
 ];
 
@@ -229,8 +276,11 @@ const quizQuestions: QuizQuestion[] = [
 ];
 
 const EcoTasks: React.FC = () => {
-  const [openQuestion, setOpenQuestion] = useState<number | null>(0);
+  const [openQuestion, setOpenQuestion] = useState<number | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+  const [progress, setProgress] = useState<DemoProgress>(() => readDemoProgress());
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [quizScore, setQuizScore] = useState<{ correct: number; total: number } | null>(null);
 
   const toggleQuestion = (index: number) => {
     setOpenQuestion((prev) => (prev === index ? null : index));
@@ -238,6 +288,57 @@ const EcoTasks: React.FC = () => {
 
   const handleAnswerSelect = (questionIndex: number, optionIndex: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [questionIndex]: optionIndex }));
+  };
+
+  const handleStartTask = (index: number) => {
+    const newProgress = startDemoTask(index);
+    setProgress(newProgress);
+  };
+
+  const handleSubmitTask = (index: number, evidenceDescription: string) => {
+    const evidence = window.prompt(`Evidence for "${ecoTasks[index].title}"\n\n${evidenceDescription}`);
+    if (!evidence?.trim()) return;
+    const newProgress = submitDemoTask(index, evidence);
+    setProgress(newProgress);
+  };
+
+  const handleResetProgress = () => {
+    if (window.confirm('Reset all local demo progress? This cannot be undone.')) {
+      resetDemoProgress();
+      setProgress(readDemoProgress());
+      setSelectedAnswers({});
+      setQuizSubmitted(false);
+      setQuizScore(null);
+    }
+  };
+
+  const handleSubmitQuiz = () => {
+    const answeredCount = Object.keys(selectedAnswers).length;
+    if (answeredCount < quizQuestions.length) {
+      if (!window.confirm(`You've answered ${answeredCount} of ${quizQuestions.length} questions. Submit anyway?`)) {
+        return;
+      }
+    }
+
+    let correct = 0;
+    quizQuestions.forEach((question, index) => {
+      if (selectedAnswers[index] === question.correctIndex) {
+        correct++;
+      }
+    });
+
+    const newProgress = saveQuizAttempt(correct, quizQuestions.length);
+    setProgress(newProgress);
+    setQuizScore({ correct, total: quizQuestions.length });
+    setQuizSubmitted(true);
+    checkAchievements(newProgress);
+  };
+
+  const handleRestartQuiz = () => {
+    setSelectedAnswers({});
+    setQuizSubmitted(false);
+    setQuizScore(null);
+    setOpenQuestion(0);
   };
 
   const totalPoints = ecoTasks.reduce((sum, task) => sum + task.points, 0);
@@ -274,12 +375,20 @@ const EcoTasks: React.FC = () => {
             <span className="text-emerald-700 font-medium text-sm">Eco-Tasks & Learning Hub</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
-            Take Action, <span className="text-emerald-600">Earn Rewards</span>, Learn More
+            Take Action, <span className="text-emerald-600">Submit Evidence</span>, Learn More
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Browse the top sustainability challenges you can start today, then test your eco-knowledge
             with our interactive quiz. Every action adds up to real environmental impact.
           </p>
+          <div className="mx-auto mt-5 flex max-w-2xl flex-col items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-left sm:flex-row">
+            <p className="text-sm text-amber-800">
+              <strong>Local demo progress:</strong> {progress.completedTaskIds.length} completed · {progress.points} points
+            </p>
+            <button onClick={handleResetProgress} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">
+              <RotateCcw className="h-4 w-4" /> Reset
+            </button>
+          </div>
 
           {/* Quick stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 max-w-2xl mx-auto">
@@ -311,7 +420,7 @@ const EcoTasks: React.FC = () => {
             </div>
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Top 10 Eco-Tasks</h2>
-              <p className="text-gray-600">Complete these challenges to earn EcoCoins and reduce your carbon footprint.</p>
+              <p className="text-gray-600">Start a challenge, submit evidence, and await authorized verification before any reward is issued.</p>
             </div>
           </div>
 
@@ -324,10 +433,15 @@ const EcoTasks: React.FC = () => {
                   <th className="px-6 py-4 font-semibold">Description</th>
                   <th className="px-6 py-4 font-semibold text-center">Points</th>
                   <th className="px-6 py-4 font-semibold text-center">Carbon Saved</th>
+                  <th className="px-6 py-4 font-semibold text-center">Submission Status</th>
                 </tr>
               </thead>
               <tbody>
                 {ecoTasks.map((task, index) => (
+                  (() => {
+                    const status = progress.taskStatuses[index] ?? 'not-started';
+                    const isSubmitted = status === 'pending-verification';
+                    return (
                   <tr
                     key={index}
                     className="border-b border-gray-100 last:border-0 hover:bg-emerald-50/50 transition-colors duration-150"
@@ -342,6 +456,7 @@ const EcoTasks: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-gray-600 text-sm leading-relaxed max-w-md">
                       {task.description}
+                      <div className="mt-2 text-xs text-gray-500">{task.benefit} · {task.duration} · {task.difficulty}</div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-700 font-semibold text-sm">
@@ -349,11 +464,25 @@ const EcoTasks: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => isSubmitted ? undefined : status === 'in-progress'
+                          ? handleSubmitTask(index, task.evidence)
+                          : handleStartTask(index)}
+                        disabled={isSubmitted}
+                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:cursor-default disabled:bg-gray-100 disabled:text-gray-500"
+                      >
+                        {isSubmitted && <CheckCircle2 className="h-4 w-4" />}
+                        {isSubmitted ? 'Pending verification' : status === 'in-progress' ? 'Submit evidence' : 'Start task'}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
                       <span className="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm">
                         {task.carbonSaved}
                       </span>
                     </td>
                   </tr>
+                    );
+                  })()
                 ))}
               </tbody>
             </table>
@@ -362,6 +491,10 @@ const EcoTasks: React.FC = () => {
           {/* Mobile cards */}
           <div className="md:hidden space-y-4">
             {ecoTasks.map((task, index) => (
+              (() => {
+                const status = progress.taskStatuses[index] ?? 'not-started';
+                const isSubmitted = status === 'pending-verification';
+                return (
               <div
                 key={index}
                 className="bg-white rounded-2xl shadow-md p-5 border-l-4 border-emerald-400"
@@ -373,6 +506,7 @@ const EcoTasks: React.FC = () => {
                   <h3 className="font-semibold text-gray-900 leading-tight">{task.title}</h3>
                 </div>
                 <p className="text-gray-600 text-sm leading-relaxed mb-4">{task.description}</p>
+                <p className="mb-4 text-xs text-gray-500">{task.benefit} · {task.duration} · {task.difficulty}</p>
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center px-3 py-1 rounded-full bg-orange-100 text-orange-700 font-semibold text-sm">
                     {task.points} pts
@@ -381,7 +515,19 @@ const EcoTasks: React.FC = () => {
                     {task.carbonSaved} CO₂
                   </span>
                 </div>
+                <button
+                  onClick={() => isSubmitted ? undefined : status === 'in-progress'
+                    ? handleSubmitTask(index, task.evidence)
+                    : handleStartTask(index)}
+                  disabled={isSubmitted}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700 disabled:bg-gray-100 disabled:text-gray-500"
+                >
+                  {isSubmitted && <CheckCircle2 className="h-4 w-4" />}
+                  {isSubmitted ? 'Pending verification' : status === 'in-progress' ? 'Submit evidence' : 'Start task'}
+                </button>
               </div>
+                );
+              })()
             ))}
           </div>
         </div>
@@ -405,6 +551,7 @@ const EcoTasks: React.FC = () => {
               const isOpen = openQuestion === qIndex;
               const selected = selectedAnswers[qIndex];
               const hasAnswered = selected !== undefined;
+              const showFeedback = quizSubmitted && hasAnswered;
 
               return (
                 <div
@@ -437,7 +584,7 @@ const EcoTasks: React.FC = () => {
                           const isSelected = selected === oIndex;
 
                           let optionClasses = 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50';
-                          if (hasAnswered) {
+                          if (showFeedback) {
                             if (isCorrect) {
                               optionClasses = 'border-emerald-500 bg-emerald-50';
                             } else if (isSelected) {
@@ -451,16 +598,16 @@ const EcoTasks: React.FC = () => {
                             <button
                               key={oIndex}
                               onClick={() => handleAnswerSelect(qIndex, oIndex)}
-                              disabled={hasAnswered}
+                              disabled={quizSubmitted}
                               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 text-left transition-all duration-150 ${optionClasses} ${
-                                hasAnswered ? 'cursor-default' : 'cursor-pointer'
+                                quizSubmitted ? 'cursor-default' : 'cursor-pointer'
                               }`}
                             >
                               <span className="text-gray-700 text-sm">{option}</span>
-                              {hasAnswered && isCorrect && (
+                              {showFeedback && isCorrect && (
                                 <span className="flex-shrink-0 ml-2 text-emerald-600 font-semibold text-sm">Correct</span>
                               )}
-                              {hasAnswered && isSelected && !isCorrect && (
+                              {showFeedback && isSelected && !isCorrect && (
                                 <span className="flex-shrink-0 ml-2 text-red-500 font-semibold text-sm">Your pick</span>
                               )}
                             </button>
@@ -468,7 +615,7 @@ const EcoTasks: React.FC = () => {
                         })}
                       </div>
 
-                      {hasAnswered && (
+                      {showFeedback && (
                         <div className="ml-11 mt-3 p-3 rounded-xl bg-blue-50 border border-blue-100">
                           <p className="text-sm text-blue-800 leading-relaxed">
                             <span className="font-semibold">Explanation: </span>
@@ -482,6 +629,65 @@ const EcoTasks: React.FC = () => {
               );
             })}
           </div>
+
+          {/* Quiz Score and Submit Section */}
+          {quizScore && quizSubmitted ? (
+            <div className="mt-8 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white shadow-xl">
+              <div className="text-center">
+                <Trophy className="h-16 w-16 mx-auto mb-4 text-yellow-300" />
+                <h3 className="text-3xl font-bold mb-2">Quiz Complete!</h3>
+                <p className="text-xl mb-4">
+                  You scored {quizScore.correct} out of {quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
+                </p>
+                <div className="mb-6">
+                  {Math.round((quizScore.correct / quizScore.total) * 100) >= 90 ? (
+                    <p className="text-lg text-blue-100">🌟 Excellent! You're an environmental expert!</p>
+                  ) : Math.round((quizScore.correct / quizScore.total) * 100) >= 70 ? (
+                    <p className="text-lg text-blue-100">💚 Great job! You have strong environmental knowledge!</p>
+                  ) : Math.round((quizScore.correct / quizScore.total) * 100) >= 50 ? (
+                    <p className="text-lg text-blue-100">👍 Good effort! Keep learning about our planet!</p>
+                  ) : (
+                    <p className="text-lg text-blue-100">📚 Keep practicing! Every question teaches something new!</p>
+                  )}
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleRestartQuiz}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-blue-700 transition hover:bg-blue-50"
+                  >
+                    <RotateCcw className="h-5 w-5" />
+                    Try Again
+                  </button>
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+                  >
+                    View Dashboard
+                    <Target className="h-5 w-5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-3xl bg-white p-6 shadow-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Ready to check your answers?</h3>
+                  <p className="text-gray-600 mt-1">
+                    {Object.keys(selectedAnswers).length} of {quizQuestions.length} questions answered
+                  </p>
+                </div>
+                <button
+                  onClick={handleSubmitQuiz}
+                  disabled={Object.keys(selectedAnswers).length === 0}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-semibold text-white shadow-md transition hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle2 className="h-5 w-5" />
+                  Submit Quiz
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

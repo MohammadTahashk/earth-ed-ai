@@ -1,51 +1,82 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Leaf, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Leaf, Mail, Lock, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(''); // Clear error on input change
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
+    // Prevent duplicate submissions
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    setError('');
+
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email) {
+      setError('Email is required.');
       setIsLoading(false);
-      setLoginSuccess(true);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address.');
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.password) {
+      setError('Password is required.');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // Demo mode intentionally does not store or verify passwords in the browser.
+      login(email);
       
-      // Redirect to homepage after 2 seconds
+      setSuccess(true);
+      
+      // Redirect to homepage after successful login
+      const from = (location.state as { from?: string } | null)?.from;
       setTimeout(() => {
-        window.location.href = '/';
-      }, 2000);
-    }, 1500);
+        navigate(from || '/');
+      }, 1500);
+    } catch {
+      setError('Unable to start demo session. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  if (loginSuccess) {
+  // Success screen
+  if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center">
           <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-2xl">✓</span>
-            </div>
+            <CheckCircle2 className="h-12 w-12 text-emerald-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome Back!</h2>
-          <p className="text-gray-600 mb-6">Login successful. Redirecting you to the homepage...</p>
+          <p className="text-gray-600 mb-6">Demo session started. Redirecting you to the dashboard...</p>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div className="bg-emerald-500 h-2 rounded-full animate-pulse" style={{ width: '100%' }}></div>
           </div>
@@ -55,22 +86,34 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center px-4 py-12">
       <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-6">
-            <div className="bg-emerald-500 p-2 rounded-lg">
+          <Link to="/" className="inline-flex items-center space-x-2 mb-6 hover:opacity-80 transition-opacity">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-lg">
               <Leaf className="h-6 w-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">EcoLearn</span>
+            <div className="flex flex-col items-start">
+              <span className="text-xl font-bold text-gray-900">EARTH-ED AI</span>
+              <span className="text-xs text-gray-500">Learn Green. Act Green.</span>
+            </div>
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h1>
           <p className="text-gray-600">Sign in to continue your eco-journey</p>
+          <p className="mt-2 text-xs font-medium text-amber-700">Local demo mode — no backend account required</p>
         </div>
 
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
         {/* Login Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email Field */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -89,6 +132,7 @@ const Login = () => {
                 className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200"
                 placeholder="Enter your email"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -111,11 +155,13 @@ const Login = () => {
                 className="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200"
                 placeholder="Enter your password"
                 required
+                disabled={isLoading}
               />
               <button
                 type="button"
                 className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
@@ -140,7 +186,7 @@ const Login = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-emerald-500 text-white py-3 px-4 rounded-xl font-semibold hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
@@ -168,21 +214,21 @@ const Login = () => {
         {/* Sign Up Link */}
         <div className="text-center">
           <Link
-            to="/register"
+            to="/signup"
             className="text-emerald-600 hover:text-emerald-700 font-semibold transition-colors duration-200"
           >
             Create an Account
           </Link>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-          <p className="text-xs text-gray-600 text-center mb-2">Demo Credentials:</p>
-          <div className="text-xs text-gray-500 space-y-1">
-            <p><strong>Student:</strong> student@demo.com / password123</p>
-            <p><strong>Teacher:</strong> teacher@demo.com / password123</p>
-            <p><strong>Admin:</strong> admin@demo.com / password123</p>
-          </div>
+        {/* Back to Home */}
+        <div className="mt-6 text-center">
+          <Link
+            to="/"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200"
+          >
+            ← Back to Home
+          </Link>
         </div>
       </div>
     </div>
