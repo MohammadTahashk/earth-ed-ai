@@ -17,6 +17,7 @@ import {
   Sprout,
   CheckCircle2,
   RotateCcw,
+  Target,
 } from 'lucide-react';
 import { DemoProgress, readDemoProgress, resetDemoProgress, saveQuizAttempt, checkAchievements, startDemoTask, submitDemoTask } from '../lib/demoProgress';
 
@@ -172,76 +173,10 @@ const quizQuestions: QuizQuestion[] = [
     explanation: 'Simply turning off the tap while brushing can save up to 8 gallons of water per day.',
   },
   {
-    question: 'What percentage of household energy is typically used for heating and cooling?',
-    options: ['About 10%', 'About 25%', 'About 48%', 'About 75%'],
-    correctIndex: 2,
-    explanation: 'Heating and cooling account for roughly 48% of the energy used in a typical home.',
-  },
-  {
-    question: 'Which material is infinitely recyclable without losing quality?',
-    options: ['Plastic', 'Aluminum', 'Paper', 'Cardboard'],
-    correctIndex: 1,
-    explanation: 'Aluminum can be recycled endlessly without degrading, unlike plastic which downgrades each cycle.',
-  },
-  {
-    question: 'What is a "carbon footprint"?',
-    options: ['The size of a coal mine', 'Total greenhouse gas emissions from an activity', 'A measure of forest area', 'The weight of carbon in a product'],
-    correctIndex: 1,
-    explanation: 'A carbon footprint is the total amount of greenhouse gases produced directly and indirectly by an activity.',
-  },
-  {
-    question: 'Which transport method produces the least carbon per passenger mile?',
-    options: ['Solo driving', 'Flying', 'Cycling', 'Riding a motorcycle'],
-    correctIndex: 2,
-    explanation: 'Cycling produces zero tailpipe emissions, making it the cleanest option per passenger mile.',
-  },
-  {
-    question: 'How much water is saved by taking a 5-minute shower instead of a 15-minute one?',
-    options: ['About 5 gallons', 'About 15 gallons', 'About 30 gallons', 'About 50 gallons'],
-    correctIndex: 2,
-    explanation: 'Cutting a 15-minute shower to 5 minutes saves roughly 30 gallons of water.',
-  },
-  {
-    question: 'Which food has the highest carbon footprint per kilogram?',
-    options: ['Beef', 'Rice', 'Potatoes', 'Lentils'],
-    correctIndex: 0,
-    explanation: 'Beef produces far more emissions per kilogram than plant-based foods due to methane from cattle.',
-  },
-  {
-    question: 'What does the "3 Rs" of sustainability stand for?',
-    options: ['Read, Remember, Recite', 'Reduce, Reuse, Recycle', 'Repair, Restore, Renew', 'Refuse, Return, Replace'],
-    correctIndex: 1,
-    explanation: 'Reduce, Reuse, Recycle is the classic waste hierarchy that prioritizes cutting waste first.',
-  },
-  {
     question: 'Which renewable energy source currently generates the most electricity worldwide?',
     options: ['Solar', 'Wind', 'Hydropower', 'Geothermal'],
     correctIndex: 2,
     explanation: 'Hydropower remains the largest source of renewable electricity globally.',
-  },
-  {
-    question: 'Approximately how many trees does it take to offset one ton of CO₂ per year?',
-    options: ['About 5 trees', 'About 45 trees', 'About 150 trees', 'About 500 trees'],
-    correctIndex: 1,
-    explanation: 'Roughly 45 mature trees are needed to absorb one ton of CO₂ over a year.',
-  },
-  {
-    question: 'What is "vampire power"?',
-    options: ['Energy from horror movies', 'Electricity used by devices when turned off', 'Power generated at night', 'Energy lost through windows'],
-    correctIndex: 1,
-    explanation: 'Vampire power is the energy electronics draw while plugged in but switched off or on standby.',
-  },
-  {
-    question: 'Which of these is a benefit of composting food waste?',
-    options: ['It increases landfill size', 'It produces methane-rich soil', 'It reduces methane emissions from landfills', 'It speeds up global warming'],
-    correctIndex: 2,
-    explanation: 'Composting keeps food out of landfills where it would otherwise produce methane, a potent greenhouse gas.',
-  },
-  {
-    question: 'How much of the Earth\'s surface is covered by oceans?',
-    options: ['About 30%', 'About 50%', 'About 71%', 'About 90%'],
-    correctIndex: 2,
-    explanation: 'Oceans cover about 71% of Earth\'s surface and absorb roughly a quarter of human CO₂ emissions.',
   },
   {
     question: 'Which shopping habit most reduces packaging waste?',
@@ -249,31 +184,16 @@ const quizQuestions: QuizQuestion[] = [
     correctIndex: 1,
     explanation: 'Bringing your own reusable bags and containers dramatically cuts single-use packaging waste.',
   },
-  {
-    question: 'What is "fast fashion" known for?',
-    options: ['Durable, long-lasting clothing', 'Cheap, rapidly produced clothing with high environmental cost', 'Locally made garments', 'Clothing made from recycled fabric'],
-    correctIndex: 1,
-    explanation: 'Fast fashion produces cheap clothing quickly, leading to massive waste and pollution.',
-  },
-  {
-    question: 'Which appliance typically uses the most energy in a home?',
-    options: ['Refrigerator', 'Toaster', 'Hair dryer', 'LED nightlight'],
-    correctIndex: 0,
-    explanation: 'The refrigerator runs constantly, making it one of the biggest energy users in most homes.',
-  },
-  {
-    question: 'What is the main environmental benefit of eating seasonal, local produce?',
-    options: ['It tastes worse', 'It reduces transport emissions and cold storage needs', 'It increases food miles', 'It requires more packaging'],
-    correctIndex: 1,
-    explanation: 'Seasonal local produce travels shorter distances and needs less refrigeration, lowering emissions.',
-  },
-  {
-    question: 'Which of these actions best helps protect biodiversity?',
-    options: ['Planting native species in gardens', 'Using more pesticides', 'Paving over green spaces', 'Introducing invasive species'],
-    correctIndex: 0,
-    explanation: 'Planting native species supports local pollinators and wildlife, preserving biodiversity.',
-  },
 ];
+
+// Helper function to get feedback based on score
+const getQuizFeedback = (percentage: number): string => {
+  if (percentage === 100) return "Excellent! You're an Eco Champion!";
+  if (percentage >= 80) return "Great job! You understand environmental sustainability.";
+  if (percentage >= 60) return "Good effort! Keep learning about our planet.";
+  if (percentage >= 40) return "Keep practicing! Every step toward learning matters.";
+  return "Keep learning about our planet and try again!";
+};
 
 const EcoTasks: React.FC = () => {
   const [openQuestion, setOpenQuestion] = useState<number | null>(null);
@@ -632,39 +552,119 @@ const EcoTasks: React.FC = () => {
 
           {/* Quiz Score and Submit Section */}
           {quizScore && quizSubmitted ? (
-            <div className="mt-8 rounded-3xl bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white shadow-xl">
-              <div className="text-center">
-                <Trophy className="h-16 w-16 mx-auto mb-4 text-yellow-300" />
-                <h3 className="text-3xl font-bold mb-2">Quiz Complete!</h3>
-                <p className="text-xl mb-4">
-                  You scored {quizScore.correct} out of {quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
-                </p>
-                <div className="mb-6">
-                  {Math.round((quizScore.correct / quizScore.total) * 100) >= 90 ? (
-                    <p className="text-lg text-blue-100">🌟 Excellent! You're an environmental expert!</p>
-                  ) : Math.round((quizScore.correct / quizScore.total) * 100) >= 70 ? (
-                    <p className="text-lg text-blue-100">💚 Great job! You have strong environmental knowledge!</p>
-                  ) : Math.round((quizScore.correct / quizScore.total) * 100) >= 50 ? (
-                    <p className="text-lg text-blue-100">👍 Good effort! Keep learning about our planet!</p>
-                  ) : (
-                    <p className="text-lg text-blue-100">📚 Keep practicing! Every question teaches something new!</p>
-                  )}
+            <div className="mt-8 space-y-6">
+              {/* Results Summary */}
+              <div className="rounded-3xl bg-gradient-to-br from-blue-600 to-purple-700 p-8 text-white shadow-xl">
+                <div className="text-center">
+                  <Trophy className="h-16 w-16 mx-auto mb-4 text-yellow-300" />
+                  <h3 className="text-3xl font-bold mb-2">Quiz Completed!</h3>
+                  
+                  {/* Detailed Stats */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 my-6 max-w-2xl mx-auto">
+                    <div className="bg-white/10 rounded-xl p-4">
+                      <div className="text-3xl font-bold">{quizScore.total}</div>
+                      <div className="text-sm text-blue-100">Total Questions</div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-4">
+                      <div className="text-3xl font-bold text-green-300">{quizScore.correct}</div>
+                      <div className="text-sm text-blue-100">Correct</div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-4">
+                      <div className="text-3xl font-bold text-red-300">{quizScore.total - quizScore.correct - (quizScore.total - Object.keys(selectedAnswers).length)}</div>
+                      <div className="text-sm text-blue-100">Incorrect</div>
+                    </div>
+                    <div className="bg-white/10 rounded-xl p-4">
+                      <div className="text-3xl font-bold text-gray-300">{quizScore.total - Object.keys(selectedAnswers).length}</div>
+                      <div className="text-sm text-blue-100">Unanswered</div>
+                    </div>
+                  </div>
+
+                  {/* Score and Percentage */}
+                  <div className="mb-6">
+                    <p className="text-4xl font-bold mb-2">{Math.round((quizScore.correct / quizScore.total) * 100)}%</p>
+                    <p className="text-xl mb-4">
+                      Final Score: {quizScore.correct}/{quizScore.total}
+                    </p>
+                    <p className="text-lg text-blue-100">
+                      {getQuizFeedback(Math.round((quizScore.correct / quizScore.total) * 100))}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={handleRestartQuiz}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-blue-700 transition hover:bg-blue-50"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                      Try Again
+                    </button>
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white px-6 py-3 font-semibold text-white transition hover:bg-white/10"
+                    >
+                      View Dashboard
+                      <Target className="h-5 w-5" />
+                    </Link>
+                  </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={handleRestartQuiz}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3 font-semibold text-blue-700 transition hover:bg-blue-50"
-                  >
-                    <RotateCcw className="h-5 w-5" />
-                    Try Again
-                  </button>
-                  <Link
-                    to="/dashboard"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-white px-6 py-3 font-semibold text-white transition hover:bg-white/10"
-                  >
-                    View Dashboard
-                    <Target className="h-5 w-5" />
-                  </Link>
+              </div>
+
+              {/* Detailed Answer Review */}
+              <div className="rounded-3xl bg-white p-6 shadow-lg">
+                <h4 className="text-2xl font-bold text-gray-900 mb-4">Answer Review</h4>
+                <p className="text-gray-600 mb-6">Review all questions with correct answers and explanations:</p>
+                
+                <div className="space-y-4">
+                  {quizQuestions.map((item, qIndex) => {
+                    const selected = selectedAnswers[qIndex];
+                    const isCorrect = selected === item.correctIndex;
+                    const wasAnswered = selected !== undefined;
+
+                    return (
+                      <div key={qIndex} className={`rounded-xl border-2 p-4 ${
+                        !wasAnswered ? 'border-gray-300 bg-gray-50' :
+                        isCorrect ? 'border-green-300 bg-green-50' : 'border-red-300 bg-red-50'
+                      }`}>
+                        <div className="flex items-start gap-3 mb-3">
+                          <span className="flex-shrink-0 w-8 h-8 bg-gray-200 text-gray-700 rounded-full flex items-center justify-center font-semibold text-sm mt-1">
+                            {qIndex + 1}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900 mb-2">{item.question}</p>
+                            
+                            {wasAnswered ? (
+                              <>
+                                <p className="text-sm text-gray-700 mb-1">
+                                  <span className="font-medium">Your answer:</span> {item.options[selected]}
+                                  {isCorrect ? (
+                                    <span className="ml-2 text-green-600 font-semibold">✓ Correct</span>
+                                  ) : (
+                                    <span className="ml-2 text-red-600 font-semibold">✗ Incorrect</span>
+                                  )}
+                                </p>
+                                {!isCorrect && (
+                                  <p className="text-sm text-green-700 font-medium mb-1">
+                                    Correct answer: {item.options[item.correctIndex]}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <p className="text-sm text-gray-600 mb-1">
+                                <span className="font-medium">Not answered</span>
+                                <span className="ml-2">→ Correct answer: {item.options[item.correctIndex]}</span>
+                              </p>
+                            )}
+                            
+                            <div className="mt-2 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                              <p className="text-sm text-blue-900">
+                                <span className="font-semibold">Explanation:</span> {item.explanation}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

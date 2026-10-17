@@ -1,0 +1,207 @@
+// Prisma schema for EARTH-ED AI
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id                String              @id @default(uuid())
+  email             String              @unique
+  displayName       String
+  passwordHash      String?
+  role              UserRole            @default(STUDENT)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  missionSubmissions MissionSubmission[]
+  quizAttempts       QuizAttempt[]
+  progress           UserProgress?
+  achievements       UserAchievement[]
+  reviewedSubmissions MissionSubmission[] @relation("Reviewer")
+  
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+// Eco-Mission model
+model EcoMission {
+  id                String              @id @default(uuid())
+  title             String
+  description       String
+  instructions      String              @db.Text
+  category          MissionCategory
+  difficulty        DifficultyLevel
+  points            Int
+  estimatedTime     Int                 // in minutes
+  estimatedCO2      Float?              // kg CO2 saved
+  estimatedWater    Float?              // liters saved
+  estimatedWaste    Float?              // kg waste reduced
+  requiresEvidence  Boolean             @default(true)
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  submissions       MissionSubmission[]
+  
+  @@index([category, active])
+  @@map("eco_missions")
+}
+
+enum MissionCategory {
+  WASTE_MANAGEMENT
+  WATER_CONSERVATION
+  ENERGY_SAVING
+  SUSTAINABLE_TRANSPORT
+  AWARENESS
+  BIODIVERSITY
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+}
+
+// Mission submission model
+model MissionSubmission {
+  id                String              @id @default(uuid())
+  userId            String
+  missionId         String
+  description       String?             @db.Text
+  evidenceUrl       String?             // Path to uploaded evidence
+  status            SubmissionStatus    @default(PENDING)
+  reviewerId        String?
+  reviewFeedback    String?             @db.Text
+  submittedAt       DateTime            @default(now())
+  reviewedAt        DateTime?
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission           EcoMission          @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  reviewer          User?               @relation("Reviewer", fields: [reviewerId], references: [id])
+  
+  @@unique([userId, missionId])
+  @@index([userId, status])
+  @@index([status])
+  @@map("mission_submissions")
+}
+
+enum SubmissionStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// Quiz question model
+model QuizQuestion {
+  id                String              @id @default(uuid())
+  question          String              @db.Text
+  options           String[]            // Array of 4 options
+  correctIndex      Int                 // Index of correct answer (0-3)
+  explanation       String              @db.Text
+  category          String
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  
+  // Relations
+  answers           QuizAnswer[]
+  
+  @@index([active])
+  @@map("quiz_questions")
+}
+
+// Quiz attempt model
+model QuizAttempt {
+  id                String              @id @default(uuid())
+  userId            String?             // Null for guest attempts
+  score             Int
+  totalQuestions    Int
+  percentage        Int
+  completedAt       DateTime            @default(now())
+  
+  // Relations
+  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers           QuizAnswer[]
+  
+  @@index([userId])
+  @@index([completedAt])
+  @@map("quiz_attempts")
+}
+
+// Quiz answer model
+model QuizAnswer {
+  id                String              @id @default(uuid())
+  attemptId         String
+  questionId        String
+  selectedIndex     Int
+  isCorrect         Boolean
+  
+  // Relations
+  attempt           QuizAttempt         @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question          QuizQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@index([attemptId])
+  @@map("quiz_answers")
+}
+
+// User progress model
+model UserProgress {
+  id                String              @id @default(uuid())
+  userId            String              @unique
+  totalPoints       Int                 @default(0)
+  verifiedMissions  Int                 @default(0)
+  totalCO2Saved     Float               @default(0)
+  totalWaterSaved   Float               @default(0)
+  totalWasteReduced Float               @default(0)
+  updatedAt         DateTime            @updatedAt
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_progress")
+}
+
+// Achievement model
+model Achievement {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  description       String
+  criteria          String              // JSON string describing criteria
+  icon              String?
+  createdAt         DateTime            @default(now())
+  
+  // Relations
+  userAchievements  UserAchievement[]
+  
+  @@map("achievements")
+}
+
+// User achievement model
+model UserAchievement {
+  id                String              @id @default(uuid())
+  userId            String
+  achievementId     String
+  earnedAt          DateTime            @default(now())
+  
+  // Relations
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement       Achievement         @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
